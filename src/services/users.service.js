@@ -12,12 +12,16 @@ const generateUniqNumberId = () => {
 
 let users = [];
 
+const getUserById = (id) => {
+  return users.find((user) => user.id === +id);
+};
+
 const initUsers = () => {
   users = [];
 };
 
 router.get('/', (req, res) => {
-  res.status(200).send(users);
+  res.status(200).json(users);
 });
 
 router.post('/', (req, res) => {
@@ -33,17 +37,17 @@ router.post('/', (req, res) => {
   };
 
   users.push(user);
-  res.status(201).send(user);
+  res.status(201).json(user);
 });
 
 router.get('/:id', (req, res) => {
   const { id } = req.params;
-  const currentUser = users.find((user) => Number(user.id) === Number(id));
+  const currentUser = getUserById(id);
 
   if (!currentUser) {
     return res.sendStatus(404);
   }
-  res.status(200).send(currentUser);
+  res.status(200).json(currentUser);
 });
 
 router.delete('/:id', (req, res) => {
@@ -70,7 +74,12 @@ router.patch('/:id', (req, res) => {
     return res.sendStatus(422);
   }
   Object.assign(currentUser, { name });
-  res.status(200).send(currentUser);
+  res.status(200).json(currentUser);
 });
 
-module.exports = { router, users, initUsers };
+module.exports = {
+  router,
+  users,
+  initUsers,
+  getUserById,
+};

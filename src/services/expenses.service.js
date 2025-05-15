@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { getUserById } = require('./users.service');
 
 const generateUniqNumberId = () => {
   const uuid = uuidv4()
@@ -45,18 +46,19 @@ router.get('/', (req, res) => {
   if (category) {
     filteredExpenses = filteredExpenses.filter((e) => e.category === category);
   } else if (categories) {
+    const categoryArray = categories.split(',');
+
     filteredExpenses = filteredExpenses.filter((e) => {
-      categories.includes(e.category);
+      categoryArray.includes(e.category);
     });
   }
-  res.status(200).send(filteredExpenses);
+  res.status(200).json(filteredExpenses);
 });
 
 router.post('/', (req, res) => {
   const { userId, spentAt, title, amount, category, note } = req.body;
-  const { users } = require('./users.service');
 
-  const userExists = users.find((user) => Number(user.id) === Number(userId));
+  const userExists = getUserById(userId);
 
   if (!title || !userExists) {
     return res.sendStatus(400);
@@ -73,7 +75,7 @@ router.post('/', (req, res) => {
   };
 
   expenses.push(newExpense);
-  res.status(201).send(newExpense);
+  res.status(201).json(newExpense);
 });
 
 router.get('/:id', (req, res) => {
@@ -83,7 +85,7 @@ router.get('/:id', (req, res) => {
   if (!expense) {
     return res.sendStatus(404);
   }
-  res.status(200).send(expense);
+  res.status(200).json(expense);
 });
 
 router.patch('/:id', (req, res) => {
@@ -104,7 +106,7 @@ router.patch('/:id', (req, res) => {
     ...(category !== undefined && { category }),
     ...(note !== undefined && { note }),
   };
-  res.status(200).send(expenses[expenseIndex]);
+  res.status(200).json(expenses[expenseIndex]);
 });
 
 router.delete('/:id', (req, res) => {
