@@ -67,7 +67,7 @@ router.patch('/:id', (req, res) => {
   const currentUser = users.find((user) => Number(user.id) === Number(id));
 
   if (!currentUser) {
-    return res.sendStatus(400);
+    return res.sendStatus(404);
   }
 
   if (typeof name !== 'string') {
