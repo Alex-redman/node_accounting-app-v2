@@ -7,9 +7,9 @@ const { initUsers } = require('./services/users.service');
 function createServer() {
   const app = express();
 
+  app.use(express.json());
   initExpenses();
   initUsers();
-  app.use(express.json());
   app.use('/expenses', expenseRouter);
   app.use('/users', userRouter);
 

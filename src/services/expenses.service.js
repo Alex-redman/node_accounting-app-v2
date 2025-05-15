@@ -49,7 +49,7 @@ router.get('/', (req, res) => {
     const categoryArray = categories.split(',');
 
     filteredExpenses = filteredExpenses.filter((e) => {
-      categoryArray.includes(e.category);
+      return categoryArray.includes(e.category);
     });
   }
   res.status(200).json(filteredExpenses);
