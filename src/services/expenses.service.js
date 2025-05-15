@@ -1,52 +1,69 @@
 const express = require('express');
 const router = express.Router();
+const { v4: uuidv4 } = require('uuid');
 
-const expenses = [];
-const { users } = require('./users.service');
+const generateUniqNumberId = () => {
+  const uuid = uuidv4()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 5);
+
+  return Number(uuid);
+};
+
+let expenses = [];
+
+const initExpenses = () => {
+  expenses = [];
+};
 
 router.get('/', (req, res) => {
   const { userId, from, to, categories, category } = req.query;
-
   let filteredExpenses = expenses;
 
   if (userId) {
     filteredExpenses = filteredExpenses.filter(
-      (e) => e.userId === parseInt(userId, 10),
+      (e) => Number(e.userId) === Number(userId),
     );
   }
 
-  if (from && to) {
+  if (from) {
+    const fromDate = new Date(from);
+
     filteredExpenses = filteredExpenses.filter(
-      (e) =>
-        new Date(e.spentAt) >= new Date(from) &&
-        new Date(e.spentAt) <= new Date(to),
+      (e) => new Date(e.spentAt) >= fromDate,
     );
-  } else if (category) {
+  }
+
+  if (to) {
+    const toDate = new Date(to);
+
+    filteredExpenses = filteredExpenses.filter(
+      (e) => new Date(e.spentAt) <= toDate,
+    );
+  }
+
+  if (category) {
     filteredExpenses = filteredExpenses.filter((e) => e.category === category);
   } else if (categories) {
-    filteredExpenses = filteredExpenses.filter(
-      (e) => e.category === categories,
-    );
+    filteredExpenses = filteredExpenses.filter((e) => {
+      categories.includes(e.category);
+    });
   }
-
-  res.json(filteredExpenses);
+  res.status(200).send(filteredExpenses);
 });
 
 router.post('/', (req, res) => {
   const { userId, spentAt, title, amount, category, note } = req.body;
+  const { users } = require('./users.service');
 
-  const user = users.find((u) => u.id === userId);
+  const userExists = users.find((user) => Number(user.id) === Number(userId));
 
-  if (!user) {
-    return res.status(400).json({ error: 'User not found' });
+  if (!title || !userExists) {
+    return res.sendStatus(400);
   }
 
-  if (!userId) {
-    return res.status(400).json({});
-  }
-
-  const expense = {
-    id: expenses.length + 1,
+  const newExpense = {
+    id: generateUniqNumberId(),
     userId,
     spentAt,
     title,
@@ -55,52 +72,50 @@ router.post('/', (req, res) => {
     note,
   };
 
-  expenses.push(expense);
-  res.status(201).json(expense);
+  expenses.push(newExpense);
+  res.status(201).send(newExpense);
 });
 
 router.get('/:id', (req, res) => {
-  const expense = expenses.find((e) => e.id === parseInt(req.params.id, 10));
+  const { id } = req.params;
+  const expense = expenses.find((e) => Number(e.id) === Number(id));
 
   if (!expense) {
-    return res.status(404).json({ error: 'Expense not found' });
+    return res.sendStatus(404);
   }
-  res.json(expense);
+  res.status(200).send(expense);
 });
 
 router.patch('/:id', (req, res) => {
-  // Keep 'patch' to match your test
-  const id = parseInt(req.params.id, 10);
-  const expenseIndex = expenses.findIndex((e) => e.id === id);
+  const { id } = req.params;
+  const expenseIndex = expenses.findIndex((e) => Number(e.id) === Number(id));
 
   if (expenseIndex === -1) {
-    return res.status(404).json({ error: 'Expense not found' });
+    return res.sendStatus(404);
   }
 
-  const { userId, spentAt, title, amount, category, note } = req.body;
+  const { spentAt, title, amount, category, note } = req.body;
 
   expenses[expenseIndex] = {
     ...expenses[expenseIndex],
-    ...(userId !== undefined && { userId }),
     ...(spentAt !== undefined && { spentAt }),
     ...(title !== undefined && { title }),
     ...(amount !== undefined && { amount }),
     ...(category !== undefined && { category }),
     ...(note !== undefined && { note }),
   };
-
-  res.json(expenses[expenseIndex]);
+  res.status(200).send(expenses[expenseIndex]);
 });
 
 router.delete('/:id', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const index = expenses.findIndex((e) => e.id === id);
+  const { id } = req.params;
+  const expenseIndex = expenses.findIndex((e) => Number(e.id) === Number(id));
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Expense not found' });
+  if (expenseIndex === -1) {
+    return res.sendStatus(404);
   }
-  expenses.splice(index, 1);
-  res.status(204).end();
+  expenses.splice(expenseIndex, 1);
+  res.sendStatus(204);
 });
 
-module.exports = { router };
+module.exports = { router, expenses, initExpenses };

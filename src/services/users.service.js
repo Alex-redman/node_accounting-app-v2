@@ -1,71 +1,76 @@
 const express = require('express');
 const router = express.Router();
+const { v4: uuidv4 } = require('uuid');
 
-const users = [];
-let nextUserId = 1;
+const generateUniqNumberId = () => {
+  const uuid = uuidv4()
+    .replace(/[^0-9]/g, '')
+    .slice(0, 5);
+
+  return Number(uuid);
+};
+
+let users = [];
+
+const initUsers = () => {
+  users = [];
+};
 
 router.get('/', (req, res) => {
-  res.json(users);
+  res.status(200).send(users);
 });
 
 router.post('/', (req, res) => {
-  const { name, email, phone } = req.body;
+  const { name } = req.body;
 
-  if (!name) {
-    return res.status(400).json({});
+  if (!name || typeof name !== 'string') {
+    return res.sendStatus(400);
   }
 
-  const newUser = {
-    id: nextUserId++,
+  const user = {
+    id: generateUniqNumberId(),
     name,
-    email,
-    phone,
   };
 
-  users.push(newUser);
-  res.status(201).json(newUser);
+  users.push(user);
+  res.status(201).send(user);
 });
 
 router.get('/:id', (req, res) => {
-  const user = users.find((u) => u.id === parseInt(req.params.id, 10));
+  const { id } = req.params;
+  const currentUser = users.find((user) => Number(user.id) === Number(id));
 
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+  if (!currentUser) {
+    return res.sendStatus(404);
   }
-  res.json(user);
-});
-
-router.patch('/:id', (req, res) => {
-  const userId = parseInt(req.params.id, 10);
-  const userIndex = users.findIndex((u) => u.id === userId);
-
-  if (userIndex === -1) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  const { name, email, phone } = req.body;
-
-  users[userIndex] = {
-    ...users[userIndex],
-    ...(name !== undefined && { name }),
-    ...(email !== undefined && { email }),
-    ...(phone !== undefined && { phone }),
-  };
-  res.json(users[userIndex]);
+  res.status(200).send(currentUser);
 });
 
 router.delete('/:id', (req, res) => {
-  const userId = parseInt(req.params.id, 10);
-  const index = users.findIndex((u) => u.id === userId);
+  const { id } = req.params;
+  const userExists = users.find((user) => Number(user.id) === Number(id));
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'User not found' });
+  if (!userExists) {
+    return res.sendStatus(404);
   }
-  users.splice(index, 1);
-  res.status(204).end();
+  users = users.filter((user) => Number(user.id) !== Number(id));
+  res.sendStatus(204);
 });
 
-module.exports = {
-  router,
-  users,
-};
+router.patch('/:id', (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  const currentUser = users.find((user) => Number(user.id) === Number(id));
+
+  if (!currentUser) {
+    return res.sendStatus(400);
+  }
+
+  if (typeof name !== 'string') {
+    return res.sendStatus(422);
+  }
+  Object.assign(currentUser, { name });
+  res.status(200).send(currentUser);
+});
+
+module.exports = { router, users, initUsers };
